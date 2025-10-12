@@ -57,22 +57,16 @@ This is the most common and powerful application of GitLab Flow, used for contin
 gitGraph
    commit id: "Initial v2.0"
    commit tag: "v2.0"
-   branch staging
-   checkout main
-   branch production
-   checkout main
    branch feat-A
    commit id: "Develop feature A"
    checkout main
    merge feat-A
-   commit id: "Feature A integrated"
+   commit id: "v2.1"
    commit tag: "v2.1"
-   checkout staging
-   merge main
-   commit id: "Deployed to staging"
-   checkout production
-   merge staging
-   commit id: "Promoted to production"
+   branch staging
+   commit id: "Deploy to staging"
+   branch production
+   commit id: "Promote to production"
 ```
 
 #### **3.2. Workflow 2: Release Branch Maintenance (for versioned software)**
