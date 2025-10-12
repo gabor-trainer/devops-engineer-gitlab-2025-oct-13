@@ -58,9 +58,9 @@ gitGraph
    commit id: "Initial v2.0"
    commit tag: "v2.0"
    branch staging
+   checkout main
    branch production
    checkout main
-   commit id: "Start development"
    branch feat-A
    commit id: "Develop feature A"
    checkout main
