@@ -57,28 +57,29 @@ For projects that need to support older versions (e.g., a library or an on-premi
 **GitLab Flow Diagram (with Environment and Release Branches):**
 ```mermaid
 gitGraph
-    commit id: "Initial Commit"
-    branch staging
-    branch production
+    commit id: "v2.3"
     branch release-2.5
     checkout main
-    commit id: "v2.4"
+    branch staging
+    branch production
+    checkout main
+    commit id: "Start v2.4 dev"
     branch feat-A
-    commit id: "Work on feat-A"
+    commit id: "work on feat-A"
     checkout main
     merge feat-A id: "Merge feat-A (MR)"
-    commit id: "More work on main"
+    commit id: "v2.4" tag: "v2.4"
     checkout staging
-    merge main id: "Deploy to Staging"
+    merge main id: "Deploy v2.4 to Staging"
     checkout production
-    merge staging id: "Promote to Prod"
+    merge staging id: "Promote v2.4 to Prod"
     checkout release-2.5
     branch hotfix-C
     commit id: "Fix critical bug"
     checkout release-2.5
     merge hotfix-C id: "v2.5.1" tag: "v2.5.1"
     checkout main
-    merge release-2.5 id: "Merge hotfix upstream"
+    merge release-2.5 id: "Merge hotfix to main"
 ```
 
 #### **4. Benefits of GitLab Flow**
