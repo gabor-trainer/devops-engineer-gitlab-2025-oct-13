@@ -1,6 +1,5 @@
 ### **Trunk-Based Development & GitLab Flow**
 
-
 #### **1. Introduction: Why a Modern Branching Strategy Matters**
 
 In our labs, you have practiced a specific workflow: creating a short-lived branch, making a small change, and merging it back quickly via a Merge Request. This is not arbitrary; it is a deliberate engineering practice designed for speed and quality. This practice is known as **Trunk-Based Development (TBD)**.
@@ -35,51 +34,54 @@ gitGraph
 
 #### **3. GitLab Flow: The Enterprise Implementation of TBD**
 
-While TBD provides the core principles, **GitLab Flow** adds practical, enterprise-ready enhancements that address the complexities of deploying to multiple environments and managing releases. It extends TBD with specific, long-lived branches for different purposes.
+While TBD provides the core principles, **GitLab Flow** adds practical, enterprise-ready enhancements. For clarity, we will examine its two primary workflows separately: the continuous delivery workflow and the release maintenance workflow.
 
-This is the workflow we, as enterprise architects, recommend and implement.
+##### **3.1. Workflow 1: Feature Development with Environment Branches**
+This is the most common and powerful application of GitLab Flow, used for continuous delivery to environments like `staging` and `production`.
 
-##### **3.1. The Core: Feature Branches and `main`**
-This is identical to TBD and is what you have practiced. The `main` branch is the primary development trunk and the target for all feature branch merge requests. Code merged to `main` is considered tested and ready for the next step.
+*   **Workflow:** Code flows downstream. A feature is merged into `main`. To deploy, `main` is merged into `staging`. After validation, `staging` is merged into `production`.
+*   **GitLab Integration:** These environment branches are configured in GitLab as **Protected Branches**, with deployment jobs in `.gitlab-ci.yml` set to run only on them.
 
-##### **3.2. Environment Branches (for Continuous Delivery)**
-This is the most powerful addition. GitLab Flow introduces long-lived branches that directly map to your deployment environments (e.g., `staging`, `production`).
-
-*   **Workflow:** Code flows downstream. A change is merged into `main`. To deploy it to the next environment, a merge request is created from `main` to `staging`. After validation on staging, another MR is created from `staging` to `production`.
-*   **GitLab Integration:** These branches are configured in GitLab as **Protected Branches**. The deployment jobs in your `.gitlab-ci.yml` are configured with `rules` to run only on these specific branches, often with a `when: manual` step for controlled, one-click deployments.
-
-##### **3.3. Release Branches (for Maintenance)**
-For projects that need to support older versions (e.g., a library or an on-premises product), GitLab Flow supports creating release branches from `main` at a specific version (e.g., `release-2.5`).
-
-*   **Workflow:** Bug fixes (hotfixes) are created on a branch from the relevant `release-*` branch. They are then merged back into that release branch.
-*   **Upstream Merge:** Critically, these hotfixes must also be merged "upstream" into `main` to ensure the fix is included in all future development.
-
-**GitLab Flow Diagram (with Environment and Release Branches):**
+**Diagram: Feature Development & Environment Promotion**
 ```mermaid
 gitGraph
-    commit id: "v2.3"
-    branch release-2.5
-    checkout main
-    branch staging
-    branch production
-    checkout main
-    commit id: "Start v2.4 dev"
-    branch feat-A
-    commit id: "work on feat-A"
-    checkout main
-    merge feat-A id: "Merge feat-A (MR)"
-    commit id: "v2.4" tag: "v2.4"
-    checkout staging
-    merge main id: "Deploy v2.4 to Staging"
-    checkout production
-    merge staging id: "Promote v2.4 to Prod"
-    checkout release-2.5
-    branch hotfix-C
-    commit id: "Fix critical bug"
-    checkout release-2.5
-    merge hotfix-C id: "v2.5.1" tag: "v2.5.1"
-    checkout main
-    merge release-2.5 id: "Merge hotfix to main"
+   commit id: "v2.0"
+   branch staging
+   branch production
+   checkout main
+   commit id: "Start Dev"
+   branch feat-A
+   commit id: "Work on feat-A"
+   checkout main
+   merge feat-A id: "Merge feat-A"
+   commit id: "v2.1" tag: "v2.1"
+   checkout staging
+   merge main id: "Deploy to Staging"
+   checkout production
+   merge staging id: "Promote to Prod"
+```
+
+##### **3.2. Workflow 2: Release Branch Maintenance (for versioned software)**
+This workflow is used for projects that need to support and patch older, specific versions that are already in production.
+
+*   **Workflow:** A critical bug is found in an older version (e.g., `v2.0`). A `hotfix` branch is created from the corresponding `release` branch. The fix is merged back into the release branch and tagged as a patch release (e.g., `v2.0.1`).
+*   **Upstream Sync:** Crucially, the fix must also be applied to `main` to prevent the bug from reappearing in future releases. This is often done via `cherry-pick`.
+
+**Diagram: Release Branch Maintenance with a Hotfix**
+```mermaid
+gitGraph
+   commit id: "v2.0" tag: "v2.0"
+   branch release-2.0
+   checkout main
+   commit id: "Start v2.1 Dev"
+   commit id: "v2.1" tag: "v2.1"
+   checkout release-2.0
+   branch hotfix-A
+   commit id: "Critical Bug Fix"
+   checkout release-2.0
+   merge hotfix-A id: "v2.0.1" tag: "v2.0.1"
+   checkout main
+   cherry-pick commit: "Critical Bug Fix"
 ```
 
 #### **4. Benefits of GitLab Flow**
@@ -91,26 +93,23 @@ gitGraph
 
 #### **5. Prerequisites for Success (The Non-Negotiables)**
 
-Adopting GitLab Flow is not just a process change; it requires a commitment to engineering discipline and automation.
+Adopting GitLab Flow requires a commitment to engineering discipline and automation.
 
-1.  **Comprehensive Automated Testing:** Since `main` must always be stable, your CI pipeline must have a robust suite of unit, integration, and (ideally) end-to-end tests that run on every single merge request.
-2.  **Fast and Reliable Builds:** If the CI pipeline takes hours to run, developers will be discouraged from integrating frequently. The feedback loop must be fast (ideally under 15 minutes).
-3.  **Strong Code Review Culture:** Merge Requests are the primary gate for quality. The team must be committed to performing timely and thorough code reviews.
-4.  **Feature Flags:** For larger changes that cannot be completed in a single day, developers use feature flags. This allows them to merge incomplete work into `main` safely, with the new feature "turned off" in production until it is complete.
+1.  **Comprehensive Automated Testing:** Since `main` must always be stable, your CI pipeline must have a robust suite of tests that run on every single merge request.
+2.  **Fast and Reliable Builds:** The feedback loop must be fast (ideally under 15 minutes).
+3.  **Strong Code Review Culture:** Merge Requests are the primary gate for quality.
+4.  **Feature Flags:** For larger changes, use feature flags to merge incomplete work into `main` safely.
 
 ---
 
 #### **6. Comparison: GitLab Flow vs. The "Managed Release" (GitFlow) Model**
 
-| Aspect                    | GitLab Flow (Trunk-Based)                                                                          | GitFlow (Managed Release)                                                                                        |
-| :------------------------ | :------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- |
-| **Primary Branch**        | `main`                                                                                             | `develop`                                                                                                        |
-| **Feature Branches**      | Branch from `main`, merge to `main`.                                                               | Branch from `develop`, merge to `develop`.                                                                       |
-| **Branch Lifetime**       | Very short (hours to days).                                                                        | Can be long-lived within a release cycle.                                                                        |
-| **Integration Frequency** | High (multiple times per day).                                                                     | Lower (tied to the release cycle).                                                                               |
-| **Release Process**       | `main` is always releasable. A release is a merge from `main` to an environment or release branch. | A formal "release branch" is created from `develop`, then merged to `main` and tagged.                           |
-| **Complexity**            | Low. Fewer long-lived branches.                                                                    | High. Manages `develop`, `release`, `hotfix`, and `main` branches simultaneously.                                |
-| **Best Suited For**       | Teams practicing CI/CD, web applications, SaaS products.                                           | Projects with scheduled, versioned releases (e.g., desktop software, libraries) and multiple supported versions. |
-
----
+| Aspect                    | GitLab Flow (Trunk-Based)                                | GitFlow (Managed Release)                                                    |
+| :------------------------ | :------------------------------------------------------- | :--------------------------------------------------------------------------- |
+| **Primary Branch**        | `main`                                                   | `develop`                                                                    |
+| **Feature Branches**      | Branch from `main`, merge to `main`.                     | Branch from `develop`, merge to `develop`.                                   |
+| **Branch Lifetime**       | Very short (hours to days).                              | Can be long-lived within a release cycle.                                    |
+| **Integration Frequency** | High (multiple times per day).                           | Lower (tied to the release cycle).                                           |
+| **Complexity**            | Low. Fewer long-lived branches.                          | High. Manages `develop`, `release`, `hotfix`, and `main`.                    |
+| **Best Suited For**       | Teams practicing CI/CD, web applications, SaaS products. | Projects with scheduled, versioned releases and multiple supported versions. |
 
