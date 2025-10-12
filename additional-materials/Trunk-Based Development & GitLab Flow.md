@@ -57,13 +57,14 @@ For projects that need to support older versions (e.g., a library or an on-premi
 **GitLab Flow Diagram (with Environment and Release Branches):**
 ```mermaid
 gitGraph
-    commit id: "v2.4"
-    branch release-2.5
-    checkout main
+    commit id: "Initial Commit"
     branch staging
     branch production
+    branch release-2.5
+    checkout main
+    commit id: "v2.4"
     branch feat-A
-    commit id: "work on feat-A"
+    commit id: "Work on feat-A"
     checkout main
     merge feat-A id: "Merge feat-A (MR)"
     commit id: "More work on main"
