@@ -1,9 +1,5 @@
 ### **Ignoring files: `.gitignore`**
 
-**Objective:** To provide a deep, practical understanding of the `.gitignore` file, its syntax, its cascading behavior, and its critical role in maintaining a clean and efficient Git repository. Upon completion, students will be able to write effective `.gitignore` files that prevent common, project-specific, and user-specific files from being accidentally committed.
-
----
-
 #### **1. The Principle: Keep Your Repository Clean**
 
 A Git repository should only contain files that are essential for building and running the project. It is **not** a backup drive for every file in your project folder.
@@ -130,4 +126,4 @@ build/
 
 ---
 
-**Conclusion:** The `.gitignore` file is a simple but powerful tool that is fundamental to professional Git usage. By using community-standard templates and understanding its core syntax and cascading precedence, you can ensure your project's repository remains lean, clean, and focused on what truly matters: the source code. It is the first line of defense against repository bloat and unnecessary merge conflicts.
+The `.gitignore` file is a simple but powerful tool that is fundamental to professional Git usage. By using community-standard templates and understanding its core syntax and cascading precedence, you can ensure your project's repository remains lean, clean, and focused on what truly matters: the source code. It is the first line of defense against repository bloat and unnecessary merge conflicts.

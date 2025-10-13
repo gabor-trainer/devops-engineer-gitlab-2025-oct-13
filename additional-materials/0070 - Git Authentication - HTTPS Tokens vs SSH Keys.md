@@ -52,7 +52,7 @@ While we use "Personal Access Tokens" as the primary example, GitLab provides a 
 
 ---
 
-**Conclusion:** The choice is clear and driven by the context of who—or what—is performing the action.
+The choice is clear and driven by the context of who—or what—is performing the action.
 
 *   **For Humans on their trusted workstations, use SSH Keys.**
 *   **For Machines, scripts, and automation, use the most narrowly-scoped Token available.**

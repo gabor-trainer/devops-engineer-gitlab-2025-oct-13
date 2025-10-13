@@ -121,4 +121,4 @@ Use GitLab's UI features to provide clear signals about the MR's status.
 
 ---
 
-**Conclusion:** Crafting a high-quality Merge Request is a fundamental skill of a senior developer. It is an act of professional empathy for your teammates. By treating every MR as a clear, complete, and verifiable proposal, you contribute to a culture of quality, speed, and effective collaboration.
+Crafting a high-quality Merge Request is a fundamental skill of a senior developer. It is an act of professional empathy for your teammates. By treating every MR as a clear, complete, and verifiable proposal, you contribute to a culture of quality, speed, and effective collaboration.
