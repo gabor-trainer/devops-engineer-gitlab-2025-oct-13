@@ -1,6 +1,6 @@
 # **Your First Multi-Stage Pipeline**
 
-**Module:** 2.1: Introduction to GitLab CI/CD
+**Module:** Introduction to GitLab CI/CD
 **Time:** Approx. 30 minutes
 
 ---
