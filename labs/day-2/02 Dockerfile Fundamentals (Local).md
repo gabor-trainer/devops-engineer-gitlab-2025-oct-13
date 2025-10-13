@@ -107,7 +107,7 @@ _**Note:** All commands in this lab should be executed in a standard Windows **P
     ```
     And for the second command:
     ```
-    Hello, Gabor from inside a Docker container!
+    Hello, <yourname> from inside a Docker container!
     ```
     The `--rm` flag automatically cleans up and removes the container after it exits, which is a good practice for simple, one-off tasks.
 
