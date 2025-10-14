@@ -170,7 +170,9 @@ Mastering variables is essential for moving beyond simple, static pipelines and 
 
 This section contains the completed artifacts for this lab.
 
-#### **8.1. Final `.gitlab-ci.yml` File**```yaml
+#### **8.1. Final `.gitlab-ci.yml` File**
+
+```yaml
 # filename: .gitlab-ci.yml
 variables:
   GREETING: "Hello from a global variable!"
