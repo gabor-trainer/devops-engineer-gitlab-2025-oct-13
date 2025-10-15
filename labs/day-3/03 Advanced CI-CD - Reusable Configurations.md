@@ -31,7 +31,7 @@ _**Note:** This lab consists of five progressive exercises. You will start with 
 
 1.  **Create and Clone the Lab Project**
     *   **[WHERE: GitLab UI - Browser & Local Terminal]**
-        *   Create a new blank project in our group named `student-<firstname>-<lastname>-lab-3.6`.
+        *   Create a new blank project in our group named `student-<firstname>-<lastname>-lab-3.3`.
         *   Initialize it with a `README.md`.
         *   Clone the project and open it in VS Code.
 

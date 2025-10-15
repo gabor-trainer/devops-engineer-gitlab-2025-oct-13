@@ -32,7 +32,7 @@ _**Note:** This lab will guide you through three pipeline runs to observe the be
 
 1.  **Create and Clone the Lab Project**
     *   **[WHERE: GitLab UI - Browser & Local Terminal]**
-        *   In the `gabors-gitlab-training-20251013` group, create a new blank project named `student-<firstname>-<lastname>-lab-2.5`.
+        *   In the `gabors-gitlab-training-20251013` group, create a new blank project named `student-<firstname>-<lastname>-lab-3.2`.
         *   Initialize it with a `README.md` file.
         *   Clone the project to your local machine and open it in VS Code.
 

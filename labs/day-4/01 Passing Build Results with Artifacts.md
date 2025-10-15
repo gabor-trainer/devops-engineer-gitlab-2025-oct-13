@@ -32,7 +32,7 @@ _**Note:** This lab will guide you through creating a new project, establishing 
 
 1.  **Create and Clone the Lab Project**
     *   **[WHERE: GitLab UI - Browser & Local Terminal]**
-        *   In the `gabors-gitlab-training-20251013` group, create a new project named `student-<firstname>-<lastname>-lab-3.2`.
+        *   In the `gabors-gitlab-training-20251013` group, create a new project named `student-<firstname>-<lastname>-lab-4.1`.
         *   Select **"Import project"** and use the **"Repository by URL"** option.
         *   For the "Git repository URL," use the same starter project URL from the previous lab: `https://gitlab.com/gabor-szabo-iqsoft/java-maven-starter.git`.
         *   Click **"Create project"**.

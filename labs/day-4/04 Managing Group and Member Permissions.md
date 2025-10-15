@@ -44,7 +44,7 @@ _**Note:** This is an interactive lab. One person will act as the **Project Main
 2.  **Invite Your Teammate as a Developer**
     Now, you will onboard your partner to your new project with limited permissions.
     *   **[WHERE: GitLab UI - Browser]**
-        *   Navigate to your `student-<firstname>-<lastname>-lab-3.5` project.
+        *   Navigate to your `student-<firstname>-<lastname>-lab-4.4` project.
         *   In the left-hand navigation, go to `Manage -> Members`.
         *   Click **"Invite members"**.
         *   Enter your partner's GitLab username.
@@ -112,7 +112,7 @@ This lab is process-oriented. The key artifact is the final state of the project
 
 #### **8.1. Final State**
 *   **Subgroup:** A new subgroup named `My Team's Services` exists within the main training group.
-*   **Project Members:** The `student-<firstname>-<lastname>-lab-3.5` project has two members: you (as `Owner` or `Maintainer`) and your partner (promoted to `Maintainer`).
+*   **Project Members:** The `student-<firstname>-<lastname>-lab-4.4` project has two members: you (as `Owner` or `Maintainer`) and your partner (promoted to `Maintainer`).
 *   **Commit History:** The `main` branch has a commit authored by your partner.
 
 ### **9. Answers**
