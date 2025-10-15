@@ -1,809 +1,618 @@
 # GitLab CI/CD Variable Precedence Explained
 
-**Understanding the Override Hierarchy: Which Variable Wins?**
+version: 1.1 revised by Gábor at 2025-10-15
+
+## Introduction
+
+In GitLab CI/CD, variables can be defined at multiple levels. When the same variable name exists in different locations, GitLab follows a specific precedence order to determine which value is used. Understanding this hierarchy is crucial for effective pipeline management and troubleshooting.
+
+** Variables defined at higher precedence levels override those at lower levels.**
 
 ---
 
-## The Variable Precedence Pyramid
+## Complete Variable Precedence Hierarchy
 
-When the same variable is defined in multiple locations, GitLab follows a strict precedence order. Variables at the top of the pyramid override those below.
+Here's the complete list from **HIGHEST to LOWEST** priority:
 
-```
-                    ┌─────────────────────────────┐
-                    │   1. Trigger/API Variables  │  HIGHEST PRIORITY
-                    │   (Pipeline API calls)      │  (Always wins)
-                    └─────────────────────────────┘
-                               ▲
-                    ┌─────────────────────────────┐
-                    │  2. Scheduled Pipeline Vars │
-                    │  (Pipeline schedule settings)│
-                    └─────────────────────────────┘
-                               ▲
-                    ┌─────────────────────────────┐
-                    │  3. Manual Pipeline Run     │
-                    │  (Run Pipeline form)        │
-                    └─────────────────────────────┘
-                               ▲
-                    ┌─────────────────────────────┐
-                    │  4. Job-Level Variables     │
-                    │  (Specific job in YAML)     │
-                    └─────────────────────────────┘
-                               ▲
-                    ┌─────────────────────────────┐
-                    │  5. Project CI/CD Variables │
-                    │  (Settings > CI/CD > Vars)  │
-                    └─────────────────────────────┘
-                               ▲
-                    ┌─────────────────────────────┐
-                    │  6. Group-Level Variables   │
-                    │  (Group Settings > CI/CD)   │
-                    └─────────────────────────────┘
-                               ▲
-                    ┌─────────────────────────────┐
-                    │  7. Instance Variables      │
-                    │  (Admin Area - if available)│
-                    └─────────────────────────────┘
-                               ▲
-                    ┌─────────────────────────────┐
-                    │  8. Global YAML Variables   │  LOWEST PRIORITY
-                    │  (.gitlab-ci.yml variables) │  (Overridden by all)
-                    └─────────────────────────────┘
-```
+### 1. **Trigger Variables** (Highest Priority)
+- **Where**: Passed via API when triggering a pipeline
+- **Use case**: External systems triggering pipelines with custom parameters
+- **Example**: CI/CD triggers from other projects or external automation
+- **Access level**: Anyone with permission to trigger pipelines via API
 
-**Golden Rule:** Higher levels ALWAYS override lower levels for the same variable name.
+### 2. **Scheduled Pipeline Variables**
+- **Where**: Defined when creating a pipeline schedule
+- **Use case**: Different variable values for nightly builds vs. weekly releases
+- **Example**: `DEPLOY_ENV=staging` for nightly schedule, `DEPLOY_ENV=production` for weekly
+- **Access level**: Maintainers and above
 
----
+### 3. **Manual Pipeline Run Variables**
+- **Where**: Entered in the UI when clicking "Run Pipeline"
+- **Use case**: Quick overrides for testing or one-off deployments
+- **Example**: Setting `DEBUG=true` for a single test run
+- **Access level**: Developers and above (if they can run pipelines)
 
-## Detailed Precedence Levels
+### 4. **Project Variables**
+- **Where**: Project Settings → CI/CD → Variables
+- **Use case**: Project-specific credentials, URLs, or configuration
+- **Example**: `AWS_ACCESS_KEY`, `DATABASE_URL` for this specific project
+- **Access level**: Maintainers and above
 
-### Level 1: Trigger/API Variables (Highest Priority)
+### 5. **Group Variables**
+- **Where**: Group Settings → CI/CD → Variables
+- **Use case**: Shared credentials or settings across multiple projects
+- **Example**: Shared Docker registry credentials for all team projects
+- **Access level**: Group owners and maintainers
 
-**Location:** Passed via GitLab API or trigger token
+### 6. **Instance Variables** (Self-managed GitLab only)
+- **Where**: Admin Area → Settings → CI/CD → Variables
+- **Use case**: Organization-wide defaults or credentials
+- **Example**: Corporate proxy settings, company-wide license keys
+- **Access level**: GitLab administrators only
 
-**Use Case:** External systems triggering pipelines with custom parameters
+### 7. **Job-level Variables**
+- **Where**: In `.gitlab-ci.yml` under a specific job
+- **Use case**: Variables that only apply to one specific job
+- **Example**: Different build flags for different build jobs
+- **Access level**: Anyone who can modify `.gitlab-ci.yml`
 
-**Example:**
-```bash
-# Trigger pipeline via API with variables
-curl -X POST \
-  -F token=YOUR_TRIGGER_TOKEN \
-  -F ref=main \
-  -F "variables[DEPLOY_ENV]=production" \
-  -F "variables[DEBUG_MODE]=true" \
-  https://gitlab.com/api/v4/projects/PROJECT_ID/trigger/pipeline
-```
+### 8. **Global/Pipeline-level Variables**
+- **Where**: Top of `.gitlab-ci.yml` under `variables:` keyword
+- **Use case**: Default values for the entire pipeline
+- **Example**: Default Node.js version, common build flags
+- **Access level**: Anyone who can modify `.gitlab-ci.yml`
 
-**Characteristics:**
-- Overrides ALL other variable sources
-- Dynamic per-pipeline execution
-- Not visible in repository
-- Requires API access or trigger token
-- Can be sensitive (use carefully)
+### 9. **Deployment Variables**
+- **Where**: Associated with deployment environments
+- **Use case**: Environment-specific variables (production vs. staging)
+- **Example**: Different API endpoints per environment
+- **Access level**: Maintainers and above
 
-**When to use:**
-- External CI/CD orchestration
-- Dynamic deployment targets
-- Integration with other tools (Jenkins, GitHub Actions)
-- Override behavior for specific runs
+### 10. **Predefined Variables** (Lowest Priority)
+- **Where**: Built into GitLab
+- **Use case**: Information about the pipeline, commit, branch, etc.
+- **Example**: `CI_COMMIT_SHA`, `CI_PROJECT_NAME`, `CI_PIPELINE_ID`
+- **Access level**: Read-only, cannot be modified
 
 ---
 
-### Level 2: Scheduled Pipeline Variables
+## Visual Precedence Diagram
 
-**Location:** CI/CD > Schedules > Edit schedule > Variables
-
-**Use Case:** Recurring jobs with specific configurations (nightly builds, weekly reports)
-
-**Example:**
 ```
-Schedule: Nightly Production Backup
-Cron: 0 2 * * *
-Variables:
-  BACKUP_TARGET = "production"
-  RETENTION_DAYS = "30"
-  NOTIFY_SLACK = "true"
+┌─────────────────────────────────────────┐
+│  TRIGGER VARIABLES                      │ ← Wins over everything
+├─────────────────────────────────────────┤
+│  SCHEDULED PIPELINE VARIABLES           │
+├─────────────────────────────────────────┤
+│  MANUAL PIPELINE RUN VARIABLES          │
+├─────────────────────────────────────────┤
+│  PROJECT VARIABLES (UI)                 │
+├─────────────────────────────────────────┤
+│  GROUP VARIABLES (UI)                   │
+├─────────────────────────────────────────┤
+│  INSTANCE VARIABLES (UI)                │
+├─────────────────────────────────────────┤
+│  JOB-LEVEL VARIABLES (.gitlab-ci.yml)   │
+├─────────────────────────────────────────┤
+│  GLOBAL/PIPELINE VARIABLES (.gitlab-ci) │
+├─────────────────────────────────────────┤
+│  DEPLOYMENT VARIABLES                   │
+├─────────────────────────────────────────┤
+│  PREDEFINED VARIABLES                   │ ← Lowest priority
+└─────────────────────────────────────────┘
 ```
-
-**Characteristics:**
-- Schedule-specific overrides
-- Different variables per schedule
-- Visible in schedule configuration
-- Only applies to scheduled runs
-
-**When to use:**
-- Different behavior for scheduled vs manual runs
-- Environment-specific schedules
-- Automated maintenance windows
 
 ---
 
-### Level 3: Manual Pipeline Run Variables
+## Deep Dive: The Four Most Common Levels
 
-**Location:** CI/CD > Pipelines > Run Pipeline button > Variables section
+### Level 1: Global/Pipeline-Level Variables
 
-**Use Case:** On-demand pipeline execution with custom parameters
+**Definition**: Variables defined at the top of `.gitlab-ci.yml` that apply to all jobs in the pipeline.
 
-**Visual:**
-```
-┌──────────────────────────────────────────┐
-│  Run Pipeline for "main" branch          │
-├──────────────────────────────────────────┤
-│  Variables (optional)                    │
-│                                          │
-│  Key                 Value               │
-│  ┌─────────────┐   ┌─────────────┐     │
-│  │ DEPLOY_ENV  │   │ staging     │     │
-│  └─────────────┘   └─────────────┘     │
-│  ┌─────────────┐   ┌─────────────┐     │
-│  │ DRY_RUN     │   │ true        │     │
-│  └─────────────┘   └─────────────┘     │
-│                                          │
-│  [Add variable]       [Run Pipeline]    │
-└──────────────────────────────────────────┘
-```
-
-**Characteristics:**
-- Quick temporary overrides
-- Testing different configurations
-- Visible in pipeline variables list
-- Not persisted (must re-enter each time)
-
-**When to use:**
-- Testing pipeline changes
-- One-time deployments
-- Debugging specific scenarios
-- Override default environment
-
----
-
-### Level 4: Job-Level Variables
-
-**Location:** `.gitlab-ci.yml` within specific job definition
-
-**Use Case:** Job-specific configuration that overrides global settings
-
-**Example:**
-```yaml
-# Global variable
-variables:
-  DEPLOY_ENV: "staging"
-  NODE_ENV: "development"
-
-# This job uses global variables
-test:
-  script:
-    - echo "Testing in $DEPLOY_ENV"  # Output: staging
-    - npm test
-
-# This job overrides with job-level variables
-deploy-production:
-  variables:
-    DEPLOY_ENV: "production"      # Overrides global
-    NODE_ENV: "production"        # Overrides global
-    ENABLE_MONITORING: "true"     # New variable
-  script:
-    - echo "Deploying to $DEPLOY_ENV"  # Output: production
-    - deploy.sh
-
-# This job inherits global + adds new
-deploy-staging:
-  variables:
-    ENABLE_MONITORING: "false"    # New variable only
-  script:
-    - echo "Deploying to $DEPLOY_ENV"  # Output: staging (global)
-    - deploy.sh
-```
-
-**Characteristics:**
-- Job-specific behavior
-- Version controlled in repository
-- Clear and explicit in YAML
-- Easy to review in merge requests
-
-**When to use:**
-- Different behavior per job
-- Override defaults for specific tasks
-- Provide job-specific configuration
-
----
-
-### Level 5: Project CI/CD Variables
-
-**Location:** Project Settings > CI/CD > Variables
-
-**Use Case:** Project-specific configuration, secrets, credentials
-
-**Visual:**
-```
-Settings > CI/CD > Variables
-
-┌──────────────────────────────────────────────────────┐
-│  Add Variable                                        │
-├──────────────────────────────────────────────────────┤
-│  Key:        API_KEY                                 │
-│  Value:      sk-1234567890abcdef                     │
-│  Type:       [X] Variable  [ ] File                  │
-│  Flags:      [X] Protected  [X] Masked  [ ] Expanded │
-│  Scope:      All environments (default)              │
-│              [ ] Specific environments: _________    │
-└──────────────────────────────────────────────────────┘
-```
-
-**Variable Types:**
-
-**Variable (default):**
-```yaml
-# Stored as environment variable
-deploy:
-  script:
-    - echo $DATABASE_URL
-    - deploy --db=$DATABASE_URL
-```
-
-**File:**
-```yaml
-# Stored as file, path in environment variable
-deploy:
-  script:
-    - cat $SERVICE_ACCOUNT_JSON      # Variable contains file path
-    - gcloud auth activate-service-account --key-file=$SERVICE_ACCOUNT_JSON
-```
-
-**Flags:**
-
-**Protected:**
-- Only available on protected branches/tags
-- Perfect for production secrets
-- Won't leak in feature branches
-
-**Masked:**
-- Value hidden in job logs
-- Prevents accidental exposure
-- Must meet requirements (no spaces, min 8 chars, base64)
-
-**Expanded:**
-- Allows variable references (`$OTHER_VAR`)
-- Disabled by default for security
-
-**Environment Scopes:**
-```
-Scope: production
-  API_KEY = "prod-key-123"
-  
-Scope: staging
-  API_KEY = "stage-key-456"
-  
-Scope: *
-  API_KEY = "dev-key-789"
-```
-
-**Characteristics:**
-- Secure storage for secrets
-- Not in repository (gitignored by nature)
-- Can be protected/masked
-- Environment-scoped
-- Requires project access to view
-
-**When to use:**
-- API keys and credentials
-- Environment URLs
-- Configuration specific to the project
-- Any secret that shouldn't be in code
-
----
-
-### Level 6: Group-Level Variables
-
-**Location:** Group Settings > CI/CD > Variables
-
-**Use Case:** Variables shared across multiple projects in a group
-
-**Example Structure:**
-```
-Group: MyCompany
-├─ Variables:
-│  ├─ AWS_REGION = "us-east-1"
-│  ├─ DOCKER_REGISTRY = "registry.company.com"
-│  └─ SLACK_WEBHOOK = "https://hooks.slack.com/..."
-│
-├─ Project: Backend API
-│  └─ Inherits all group variables
-│
-├─ Project: Frontend App
-│  └─ Inherits all group variables
-│
-└─ Project: Mobile App
-   └─ Inherits all group variables
-```
-
-**Characteristics:**
-- Share common configuration
-- Reduce duplication
-- Centralized management
-- All group projects inherit
-- Can be overridden at project level
-
-**When to use:**
-- Organization-wide settings
-- Shared infrastructure credentials
-- Common registry/repository URLs
-- Company standards (coding style, tools)
-
----
-
-### Level 7: Instance-Level Variables (Admin Only)
-
-**Location:** Admin Area > Settings > CI/CD > Variables
-
-**Use Case:** GitLab instance-wide configuration (self-hosted only)
-
-**Characteristics:**
-- Available to ALL projects on instance
-- Useful for license keys, global proxies
-- Requires administrator access
-- Not available on GitLab.com
-- Lowest precedence among UI variables
-
-**When to use:**
-- Self-hosted GitLab instances
-- Company-wide tool licenses
-- Proxy/firewall configurations
-- Global compliance settings
-
----
-
-### Level 8: Global YAML Variables (Lowest Priority)
-
-**Location:** `.gitlab-ci.yml` at root level
-
-**Use Case:** Default values, development configuration, non-sensitive settings
-
-**Example:**
+**Location in `.gitlab-ci.yml`**:
 ```yaml
 variables:
-  # These are defaults - can be overridden by any higher level
-  DEPLOY_ENV: "development"
-  DEBUG_MODE: "true"
-  LOG_LEVEL: "info"
-  NODE_ENV: "development"
-  CACHE_ENABLED: "true"
+  NODE_VERSION: "18"
+  BUILD_TYPE: "production"
+  ENABLE_CACHE: "true"
 
 stages:
   - build
   - test
   - deploy
-
-build:
-  script:
-    - echo "Building for $DEPLOY_ENV"
 ```
 
-**Characteristics:**
-- Version controlled
-- Visible to all team members
-- Great for documentation
-- Safe defaults
-- LOWEST priority - overridden by everything
-- Should NOT contain secrets
+**Real-Life Example 1: Default Versions**
+```yaml
+variables:
+  NODE_VERSION: "18.17.0"
+  PYTHON_VERSION: "3.11"
+  DOCKER_IMAGE: "alpine:3.18"
 
-**When to use:**
-- Default configurations
-- Development/testing values
-- Non-sensitive settings
-- Documentation of expected variables
+build_frontend:
+  image: node:${NODE_VERSION}
+  script:
+    - npm install
+    - npm run build
+
+build_backend:
+  image: python:${PYTHON_VERSION}
+  script:
+    - pip install -r requirements.txt
+    - python setup.py build
+```
+**Use case**: Set default versions for all jobs. If you need to upgrade Node.js across all jobs, change it once here.
+
+**Real-Life Example 2: Feature Flags**
+```yaml
+variables:
+  ENABLE_EXPERIMENTAL_FEATURES: "false"
+  RUN_PERFORMANCE_TESTS: "true"
+  DEPLOY_TO_STAGING: "true"
+
+test_job:
+  script:
+    - |
+      if [ "$ENABLE_EXPERIMENTAL_FEATURES" = "true" ]; then
+        npm run test:experimental
+      fi
+    - npm run test
+```
+**Use case**: Control pipeline behavior across all jobs. Developers can override these via UI for testing.
 
 ---
 
-## Precedence in Action: Real-World Examples
+### Level 2: Job-Level Variables
 
-### Example 1: Deployment Environment Override
+**Definition**: Variables defined within a specific job that only apply to that job.
 
-**Scenario:** You have a default staging environment but need to deploy to production.
-
-**Configuration:**
+**Location in `.gitlab-ci.yml`**:
 ```yaml
-# .gitlab-ci.yml (Level 8 - Lowest)
+build_production:
+  variables:
+    BUILD_TYPE: "production"
+    OPTIMIZE: "true"
+  script:
+    - npm run build
+
+build_development:
+  variables:
+    BUILD_TYPE: "development"
+    OPTIMIZE: "false"
+  script:
+    - npm run build
+```
+
+**Real-Life Example 1: Different Build Configurations**
+```yaml
 variables:
-  DEPLOY_ENV: "staging"
+  # Global default
+  BUILD_ENV: "staging"
+
+build_staging:
+  variables:
+    BUILD_ENV: "staging"
+    API_URL: "https://api-staging.example.com"
+    MINIFY: "false"
+  script:
+    - echo "Building for $BUILD_ENV"
+    - npm run build -- --env=$BUILD_ENV --api-url=$API_URL
+
+build_production:
+  variables:
+    BUILD_ENV: "production"  # Overrides global
+    API_URL: "https://api.example.com"
+    MINIFY: "true"
+  script:
+    - echo "Building for $BUILD_ENV"
+    - npm run build -- --env=$BUILD_ENV --api-url=$API_URL
+```
+**Use case**: Each build job needs different configuration. The job-level variables override the global default.
+
+**Real-Life Example 2: Different Docker Registries**
+```yaml
+variables:
+  DOCKER_REGISTRY: "registry.gitlab.com"  # Default
+
+push_to_gitlab:
+  variables:
+    DOCKER_REGISTRY: "registry.gitlab.com"
+    DOCKER_TAG: "latest"
+  script:
+    - docker push $DOCKER_REGISTRY/myapp:$DOCKER_TAG
+
+push_to_aws:
+  variables:
+    DOCKER_REGISTRY: "123456789.dkr.ecr.us-east-1.amazonaws.com"
+    DOCKER_TAG: "production"
+  script:
+    - docker push $DOCKER_REGISTRY/myapp:$DOCKER_TAG
+```
+**Use case**: Push the same image to different registries using job-specific variables.
+
+---
+
+### Level 3: Group Variables
+
+**Definition**: Variables defined at the group level, shared across all projects in the group.
+
+**Location**: Group Settings → CI/CD → Variables
+
+**Real-Life Example 1: Shared Credentials**
+
+Scenario: Your organization has 20 microservices, all need access to the same Docker registry.
+
+**Without Group Variables** (Bad):
+- Define `DOCKER_USERNAME` and `DOCKER_PASSWORD` in 20 project variable settings
+- When password rotates, update 20 projects manually
+- Risk of inconsistency and forgotten updates
+
+**With Group Variables** (Good):
+```
+Group: "backend-team"
+├── Project: user-service
+├── Project: payment-service
+├── Project: notification-service
+└── ... (17 more projects)
+
+Group Variables:
+  DOCKER_USERNAME: "gitlab-ci-bot"
+  DOCKER_PASSWORD: "*********" (masked)
+  SHARED_NPM_TOKEN: "*********" (masked)
+```
+
+All 20 projects automatically get these variables. Rotate the password once at the group level.
+
+**Real-Life Example 2: Environment Endpoints**
+
+```
+Group Variables:
+  KAFKA_BROKER: "kafka.internal.company.com:9092"
+  REDIS_HOST: "redis.internal.company.com"
+  MONITORING_URL: "https://grafana.company.com"
+  SENTRY_DSN: "https://abc123@sentry.io/456789"
+```
+
+`.gitlab-ci.yml` in any project:
+```yaml
+test_integration:
+  script:
+    - echo "Connecting to Kafka at $KAFKA_BROKER"
+    - python run_integration_tests.py
+  # KAFKA_BROKER comes from group variables
+```
+
+**Use case**: All microservices in the group connect to the same infrastructure. Define once, use everywhere.
+
+---
+
+### Level 4: Project Variables
+
+**Definition**: Variables defined for a specific project, overriding group and lower-level variables.
+
+**Location**: Project Settings → CI/CD → Variables
+
+**Real-Life Example 1: Project-Specific Secrets**
+
+Scenario: You have a group-level `DATABASE_URL` for dev database, but production project needs its own.
+
+```
+Group Variables:
+  DATABASE_URL: "postgres://dev.db.company.com/shared_dev"
+
+Project Variables (in production-api project):
+  DATABASE_URL: "postgres://prod.db.company.com/production"  ← Overrides group
+  AWS_S3_BUCKET: "production-media-bucket"
+  DEPLOY_KEY: "*********"
+```
+
+`.gitlab-ci.yml`:
+```yaml
+deploy_production:
+  script:
+    - echo "Deploying to database: $DATABASE_URL"
+    - python manage.py migrate
+    - python manage.py deploy
+  # Uses project-level DATABASE_URL, not group-level
+```
+
+**Result**: Development projects use the group's dev database, production uses its own.
+
+**Real-Life Example 2: Feature Flags Per Project**
+
+```
+Group Variables:
+  ENABLE_NEW_UI: "false"  # Default for all projects
+
+Project Variables (in beta-testing project):
+  ENABLE_NEW_UI: "true"  ← Override for this project only
+```
+
+`.gitlab-ci.yml`:
+```yaml
+variables:
+  FEATURE_FLAG_SOURCE: "group-default"  # Lowest priority
+
+build_app:
+  script:
+    - |
+      if [ "$ENABLE_NEW_UI" = "true" ]; then
+        echo "Building with new UI"
+        npm run build:new-ui
+      else
+        echo "Building with classic UI"
+        npm run build:classic
+      fi
+```
+
+**Use case**: Beta project tests new features, while other projects use stable defaults.
+
+---
+
+## Practical Override Scenarios
+
+### Scenario 1: Emergency Debug Override
+
+**Setup**:
+```yaml
+# .gitlab-ci.yml
+variables:
+  LOG_LEVEL: "info"
 
 deploy:
+  variables:
+    LOG_LEVEL: "info"
   script:
-    - echo "Deploying to $DEPLOY_ENV"
-    - ./deploy.sh $DEPLOY_ENV
+    - deploy_app.sh
 ```
 
-**Settings > CI/CD > Variables (Level 5):**
+**Problem**: Production deployment failing, need verbose logs NOW.
+
+**Solution**: Click "Run Pipeline" → Add variable:
 ```
-Key: DEPLOY_ENV
-Value: production
-Scope: production (environment)
-Protected: Yes
+LOG_LEVEL = debug
 ```
 
-**Result:**
-- Feature branch runs: `DEPLOY_ENV = "staging"` (from YAML)
-- Main branch run: `DEPLOY_ENV = "production"` (from Project variable with environment scope)
-- Manual run with variable: Uses manual override (Level 3)
+**Precedence Chain**:
+```
+Manual Run (debug) ✓ WINS
+    ↓ overrides
+Job-level (info)
+    ↓ overrides
+Global (info)
+```
+
+The deployment runs with debug logging without touching code or project settings.
 
 ---
 
-### Example 2: The API Key Mystery
+### Scenario 2: Multi-Environment Strategy
 
-**Setup:**
+**Setup**:
+```
+Group Variables:
+  API_ENDPOINT: "https://api-dev.company.com"      # Dev default
+  CACHE_ENABLED: "true"
+  
+Project Variables (staging-project):
+  API_ENDPOINT: "https://api-staging.company.com"  # Override for staging
+  
+Project Variables (production-project):
+  API_ENDPOINT: "https://api.company.com"          # Override for production
+  CACHE_ENABLED: "false"                           # Production needs fresh data
+```
+
+`.gitlab-ci.yml` (same in all projects):
+```yaml
+variables:
+  TIMEOUT: "30"  # Global fallback
+
+deploy:
+  variables:
+    RETRY_COUNT: "3"  # Job-level setting
+  script:
+    - echo "Deploying to $API_ENDPOINT"
+    - echo "Cache: $CACHE_ENABLED, Timeout: $TIMEOUT, Retries: $RETRY_COUNT"
+    - ./deploy.sh
+```
+
+**Result per project**:
+- **Dev projects**: API_ENDPOINT from group, CACHE_ENABLED=true
+- **Staging project**: API_ENDPOINT overridden, CACHE_ENABLED=true from group
+- **Production project**: Both API_ENDPOINT and CACHE_ENABLED overridden
+
+---
+
+### Scenario 3: The Full Stack Override
+
+Let's trace `DEPLOY_ENV` through all levels:
+
 ```yaml
 # .gitlab-ci.yml
 variables:
-  API_KEY: "dev-key-123"  # Level 8
+  DEPLOY_ENV: "development"  # Level 8: Global
 
-# Group Settings > CI/CD
-API_KEY: "group-key-456"  # Level 6
-
-# Project Settings > CI/CD
-API_KEY: "project-key-789"  # Level 5
-
-# Job-level
-test:
+deploy_staging:
   variables:
-    API_KEY: "test-key-000"  # Level 4
+    DEPLOY_ENV: "staging"    # Level 7: Job
   script:
-    - echo $API_KEY
+    - echo $DEPLOY_ENV
 ```
 
-**Question:** What API_KEY does the test job use?
-
-**Answer:** `test-key-000` (Level 4 - Job-level wins)
-
-**Visual Resolution:**
+**Configuration**:
 ```
-Level 4 (Job-level): "test-key-000"  <-- WINNER
-   |
-   | (overrides)
-   |
-Level 5 (Project):   "project-key-789"
-   |
-   | (overrides)
-   |
-Level 6 (Group):     "group-key-456"
-   |
-   | (overrides)
-   |
-Level 8 (YAML):      "dev-key-123"
+Group Variables:
+  DEPLOY_ENV: "group-default"
+
+Project Variables:
+  DEPLOY_ENV: "production"
+
+Manual Run:
+  DEPLOY_ENV: "hotfix"
 ```
 
----
+**When you run the pipeline normally**:
+```
+Precedence resolution:
+Project (production) ← WINS
+    ↓ would override
+Job (staging)
+    ↓ would override
+Global (development)
+    ↓ would override
+Group (group-default)
 
-### Example 3: Protected Branch Secrets
-
-**Problem:** How to ensure production secrets only work on main branch?
-
-**Solution:**
-```yaml
-# .gitlab-ci.yml
-variables:
-  DATABASE_URL: "postgres://localhost/dev"  # Default for feature branches
-
-deploy-production:
-  script:
-    - echo "Database: $DATABASE_URL"
-    - deploy-to-production
-  only:
-    - main
+Result: DEPLOY_ENV = "production"
 ```
 
-**Project Settings > CI/CD > Variables:**
+**When you manually run with override**:
 ```
-Key: DATABASE_URL
-Value: postgres://prod-db.company.com/prod
-Protected: Yes (only available on protected branches)
-Masked: Yes
-Environment Scope: production
-```
+Precedence resolution:
+Manual Run (hotfix) ← WINS
+    ↓ overrides
+Project (production)
+    ↓ would override
+Job (staging)
+    ↓ would override
+Global (development)
+    ↓ would override
+Group (group-default)
 
-**Behavior:**
-- Feature branch: Uses YAML default (dev database)
-- Main branch: Uses protected variable (prod database)
-- Variable value never appears in logs (masked)
-
----
-
-## Variable Resolution Flowchart
-
-```
-                    Start: Job needs variable "DEPLOY_ENV"
-                                    |
-                                    v
-                    ┌───────────────────────────────────┐
-                    │ Was variable set via API call?    │
-                    └───────────┬───────────────┬───────┘
-                              YES              NO
-                                |               |
-                                v               v
-                          Use API value    ┌────────────────────────────────┐
-                          [DONE]           │ Was variable set in schedule?  │
-                                           └──────────┬──────────────┬──────┘
-                                                    YES             NO
-                                                      |              |
-                                                      v              v
-                                               Use schedule    ┌──────────────────────────────────┐
-                                               [DONE]          │ Was variable set in manual run?  │
-                                                               └──────────┬──────────────┬────────┘
-                                                                        YES             NO
-                                                                          |              |
-                                                                          v              v
-                                                                    Use manual    ┌───────────────────────────────────┐
-                                                                    [DONE]        │ Is variable in job definition?    │
-                                                                                  └──────────┬──────────────┬─────────┘
-                                                                                           YES             NO
-                                                                                             |              |
-                                                                                             v              v
-                                                                                        Use job     ┌────────────────────────────────────┐
-                                                                                        [DONE]      │ Is variable in project settings?   │
-                                                                                                    └──────────┬──────────────┬──────────┘
-                                                                                                             YES             NO
-                                                                                                               |              |
-                                                                                                               v              v
-                                                                                                         Use project   ┌─────────────────────────────────┐
-                                                                                                         [DONE]        │ Is variable in group settings?  │
-                                                                                                                       └──────────┬──────────────┬───────┘
-                                                                                                                                YES             NO
-                                                                                                                                  |              |
-                                                                                                                                  v              v
-                                                                                                                            Use group    ┌──────────────────────────────────────┐
-                                                                                                                            [DONE]       │ Is variable in instance settings?    │
-                                                                                                                                         └──────────┬──────────────┬────────────┘
-                                                                                                                                                  YES             NO
-                                                                                                                                                    |              |
-                                                                                                                                                    v              v
-                                                                                                                                              Use instance  ┌──────────────────────────────────┐
-                                                                                                                                              [DONE]        │ Is variable in .gitlab-ci.yml?   │
-                                                                                                                                                            └──────────┬──────────────┬────────┘
-                                                                                                                                                                     YES             NO
-                                                                                                                                                                       |              |
-                                                                                                                                                                       v              v
-                                                                                                                                                                  Use YAML      Variable not set
-                                                                                                                                                                  [DONE]        [Empty/undefined]
-```
-
----
-
-## Common Confusion & Troubleshooting
-
-### Problem 1: "My variable isn't working!"
-
-**Symptoms:** Variable shows empty or unexpected value in job
-
-**Debug Steps:**
-```yaml
-debug-variables:
-  script:
-    - echo "Checking variable sources..."
-    - echo "MY_VAR from environment: $MY_VAR"
-    - env | grep MY_VAR
-    - echo "All CI variables:"
-    - env | grep ^CI_
-```
-
-**Checklist:**
-1. Check variable name spelling (case-sensitive!)
-2. Verify variable exists at expected level
-3. Check if protected variable on unprotected branch
-4. Verify environment scope matches
-5. Look for typos in `.gitlab-ci.yml`
-6. Check if variable is masked (won't see in logs)
-
----
-
-### Problem 2: "Protected variable not available"
-
-**Issue:** Variable shows empty on protected branch
-
-**Causes:**
-- Branch/tag not marked as "protected" in repository settings
-- Variable scope doesn't match environment
-- User lacks permission to view variable
-
-**Solution:**
-```
-1. Go to Settings > Repository > Protected Branches
-2. Verify your branch is protected
-3. Go to Settings > CI/CD > Variables
-4. Check variable has "Protected" flag
-5. Verify environment scope matches (or use "*")
-```
-
----
-
-### Problem 3: "Can't override group variable"
-
-**Misconception:** Group variables can't be changed
-
-**Reality:** They CAN be overridden at project or job level!
-
-**Example:**
-```yaml
-# Group has: AWS_REGION = "us-east-1"
-
-# Project can override in Settings > CI/CD
-# Or in .gitlab-ci.yml:
-
-deploy-europe:
-  variables:
-    AWS_REGION: "eu-west-1"  # Overrides group variable
-  script:
-    - deploy-to-aws
-```
-
----
-
-### Problem 4: "Which variable is actually being used?"
-
-**Solution:** Use CI/CD debugging output
-
-**Add to your job:**
-```yaml
-.debug_template:
-  before_script:
-    - |
-      echo "=== Variable Debug Info ==="
-      echo "Job: $CI_JOB_NAME"
-      echo "Pipeline Source: $CI_PIPELINE_SOURCE"
-      echo "Branch: $CI_COMMIT_BRANCH"
-      echo "MY_VAR value: $MY_VAR"
-      echo "MY_VAR source: Unknown (check precedence)"
-      echo "=========================="
-
-my_job:
-  extends: .debug_template
-  script:
-    - actual-work.sh
+Result: DEPLOY_ENV = "hotfix"
 ```
 
 ---
 
 ## Best Practices
 
-### 1. Use the Right Level for the Right Purpose
+### 1. **Use the Right Level for the Job**
 
-| Level       | Best For                                 | Avoid For                       |
-| ----------- | ---------------------------------------- | ------------------------------- |
-| API/Trigger | External integrations, dynamic overrides | Regular pipeline runs           |
-| Schedule    | Schedule-specific config                 | Variables needed in manual runs |
-| Manual Run  | Testing, one-off overrides               | Persistent configuration        |
-| Job-Level   | Job-specific behavior                    | Secrets (not visible enough)    |
-| Project     | Secrets, project config                  | Shared org-wide settings        |
-| Group       | Shared team settings                     | Project-specific values         |
-| Instance    | Global infrastructure                    | Project-specific anything       |
-| YAML        | Defaults, documentation                  | Secrets (visible in repo!)      |
+| Variable Type         | Best Level              | Reason                                |
+| --------------------- | ----------------------- | ------------------------------------- |
+| Secrets (API keys)    | Project/Group           | Secure, masked, not in code           |
+| Default versions      | Global (.gitlab-ci.yml) | Visible, version controlled           |
+| Job-specific config   | Job-level               | Clear which job uses what             |
+| Shared infrastructure | Group                   | DRY principle, single source of truth |
+| Quick testing         | Manual run              | No code changes needed                |
 
-### 2. Security Guidelines
+### 2. **Document Your Strategy**
 
-**DO:**
-- Store secrets in Project/Group variables (Level 5/6)
-- Use "Protected" flag for production secrets
-- Use "Masked" flag to hide values in logs
-- Use environment scopes to limit variable availability
-- Document expected variables in README
-
-**DON'T:**
-- Never put secrets in `.gitlab-ci.yml`
-- Don't use API variables for permanent config
-- Don't share credentials across projects via group vars
-- Don't rely on variable precedence for security
-
-### 3. Naming Conventions
-
+Add comments to your `.gitlab-ci.yml`:
 ```yaml
-# Good naming (clear purpose)
 variables:
-  DEPLOY_TARGET_ENV: "staging"
-  AWS_REGION: "us-east-1"
-  ENABLE_DEBUG_MODE: "false"
-  API_BASE_URL: "https://api.example.com"
-
-# Poor naming (confusing)
-variables:
-  VAR1: "something"
-  TEMP: "value"
-  X: "yes"
+  # Default to Node 18 - can be overridden at project level for legacy apps
+  NODE_VERSION: "18"
+  
+  # API URL is set at group level - production projects override it
+  # Group: api-staging.company.com
+  # Production projects: api.company.com
+  API_ENDPOINT: "fallback-value"
 ```
 
-### 4. Documentation Template
+### 3. **Avoid Variable Name Collisions**
 
-Add to your repository README:
+Use prefixes to avoid conflicts:
+```yaml
+# Good
+CI_IMAGE_TAG: "latest"
+CI_DOCKER_REGISTRY: "registry.gitlab.com"
+CI_BUILD_TYPE: "production"
 
-```markdown
-## Required CI/CD Variables
-
-### Project Variables (Settings > CI/CD > Variables)
-
-| Variable      | Description           | Example        | Protected | Masked |
-| ------------- | --------------------- | -------------- | --------- | ------ |
-| API_KEY       | Production API key    | sk-...         | Yes       | Yes    |
-| DATABASE_URL  | Database connection   | postgres://... | Yes       | Yes    |
-| SLACK_WEBHOOK | Notifications webhook | https://...    | No        | Yes    |
-
-### Default Variables (.gitlab-ci.yml)
-
-| Variable   | Default     | Description       |
-| ---------- | ----------- | ----------------- |
-| DEPLOY_ENV | staging     | Deployment target |
-| NODE_ENV   | development | Node environment  |
-| LOG_LEVEL  | info        | Logging verbosity |
+# Bad (conflicts with GitLab predefined)
+CI_COMMIT_SHA: "custom-value"  # Don't do this!
 ```
 
-### 5. Testing Variable Precedence
+### 4. **Use Masked Variables for Secrets**
 
-**Create a test job:**
+In Project/Group Settings → CI/CD → Variables:
+- ✅ Check "Mask variable" for passwords, tokens, keys
+- ✅ Check "Protect variable" for production credentials
+- ✅ Use "File" type for certificates or config files
+
+### 5. **Test Precedence with Debug Job**
+
+Add this to your pipeline:
 ```yaml
-test-variables:
-  stage: test
+debug_variables:
+  stage: .pre
   script:
-    - |
-      echo "=== Variable Precedence Test ==="
-      echo "TEST_VAR from YAML: Should show if not overridden"
-      echo "TEST_VAR actual value: $TEST_VAR"
-      echo ""
-      echo "Expected precedence (highest to lowest):"
-      echo "1. API/Trigger"
-      echo "2. Schedule"
-      echo "3. Manual Run"
-      echo "4. Job-level"
-      echo "5. Project Settings"
-      echo "6. Group Settings"
-      echo "7. Instance Settings"
-      echo "8. YAML Global (this value: $YAML_DEFAULT)"
-  variables:
-    TEST_VAR: "from-yaml-global"
-    YAML_DEFAULT: "yaml-level-8"
-  rules:
-    - when: manual
+    - echo "NODE_VERSION=$NODE_VERSION"
+    - echo "API_ENDPOINT=$API_ENDPOINT"
+    - echo "DEPLOY_ENV=$DEPLOY_ENV"
+    - env | grep CI_ | sort
+  when: manual
 ```
+
+Run it to see which values won the precedence battle.
 
 ---
 
-## Quick Reference Card
+## Common Pitfalls
 
-### Precedence Order (Top Wins)
+### ❌ Pitfall 1: "Why isn't my variable changing?"
 
+```yaml
+variables:
+  MY_VAR: "default"
+
+job:
+  script:
+    - MY_VAR="changed"
+    - echo $MY_VAR  # Prints "changed"
+    
+next_job:
+  script:
+    - echo $MY_VAR  # Prints "default" - variables don't carry between jobs!
 ```
-1. API/Trigger          Highest priority
-2. Schedule             Schedule-specific
-3. Manual Run           One-time override
-4. Job-Level (YAML)     Job-specific
-5. Project Settings     Project config
-6. Group Settings       Shared across projects
-7. Instance Settings    Instance-wide (admin)
-8. Global YAML          Defaults, lowest priority
+
+**Fix**: Use artifacts or pass via `dotenv` artifacts if needed.
+
+### ❌ Pitfall 2: "My project variable isn't working!"
+
+Check if a job-level variable is overriding it:
+```yaml
+variables:
+  API_KEY: "will-be-overridden"
+
+job:
+  variables:
+    API_KEY: "job-level-wins"  # This beats project variables!
 ```
 
-### Memory Aid: "API Schedules Manual Jobs Privately in Groups Immediately with YAML"
+### ❌ Pitfall 3: "Group variable isn't applying"
 
-- **A**PI
-- **S**chedule
-- **M**anual
-- **J**ob
-- **P**roject
-- **G**roup
-- **I**nstance
-- **Y**AML
+Ensure the project is actually in that group:
+- Check: Project → Settings → General → Project name (should show group/project)
+- Variables only inherit from the immediate parent group
+
+---
+
+## Quick Reference Cheat Sheet
+
+**Need to override for all projects?** → Use **Group Variables**
+
+**Need to override for one project?** → Use **Project Variables**
+
+**Need to set defaults in code?** → Use **Global Variables** (`.gitlab-ci.yml`)
+
+**Need job-specific values?** → Use **Job Variables** (`.gitlab-ci.yml`)
+
+**Need to test one run?** → Use **Manual Run Variables** (UI)
+
+**Need to schedule different values?** → Use **Scheduled Pipeline Variables**
 
 ---
 
 ## Summary
 
-**Key Takeaways:**
+Understanding GitLab's variable precedence is essential for:
+- ✅ Writing maintainable CI/CD pipelines
+- ✅ Managing secrets securely at the right level
+- ✅ Avoiding configuration conflicts
+- ✅ Quick debugging and testing
+- ✅ Scaling across teams and projects
 
-1. **Higher levels ALWAYS override lower levels** - No exceptions
-2. **YAML variables have the LOWEST priority** - They're defaults only
-3. **Project/Group variables are perfect for secrets** - Not visible in code
-4. **Job-level variables override global YAML** - Use for job-specific config
-5. **Manual/API/Schedule variables override everything below** - Dynamic control
-6. **Use protected variables for production** - Security best practice
-7. **Document your variables** - Future you will thank you
+Remember: **Higher precedence levels always win.** Manual overrides beat UI settings, UI settings beat code, and job-level beats global.
 
-**When in doubt:**
-1. Check the pyramid - higher wins
-2. Use debug scripts to see actual values
-3. Remember: YAML is just defaults, UI settings override them
-
-Understanding variable precedence prevents confusion, security issues, and debugging headaches. Master this concept, and your CI/CD pipelines will be more secure, maintainable, and predictable.
+When in doubt, use the debug job to see what's actually running!
