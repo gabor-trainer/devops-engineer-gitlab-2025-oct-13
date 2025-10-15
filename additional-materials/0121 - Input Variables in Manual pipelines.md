@@ -12,6 +12,8 @@ spec:
       description: "This variable is not used in any job."
       default: "another_value"
 
+---
+
 stages:
   - build
   - test
