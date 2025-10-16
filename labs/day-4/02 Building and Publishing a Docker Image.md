@@ -61,32 +61,32 @@ _**Note:** This lab is advanced and combines several concepts. Pay close attenti
       - build_image
       - test_image
 
-    # This job builds the Dockerfile and pushes it to this project's Container Registry.
     build-the-image:
       stage: build_image
-      # We need a special image that contains the Docker client.
       image: docker:24.0.5
-      # We also need to run the Docker daemon (engine) as a background service.
       services:
-        - docker:24.0.5-dind
-      # These variables are required for Docker-in-Docker to work correctly.
+        - name: docker:24.0.5-dind
+          # Give the service an explicit alias so we can refer to it.
+          alias: docker-daemon
       variables:
-        DOCKER_TLS_CERTDIR: "/certs"
-      # The script logs into the GitLab registry, builds the image, and pushes it.
+        # Tell the Docker client to connect to the daemon over TCP.
+        # 'docker-daemon' is the alias we defined above.
+        DOCKER_HOST: tcp://docker-daemon:2375
+        # Disable TLS, as this is an internal, trusted connection.
+        DOCKER_TLS_CERTDIR: ""
+        DOCKER_DRIVER: overlay2
       script:
+        - echo "Waiting for Docker daemon to be ready..."
+        - sleep 10 # Give the dind service a moment to start
         - echo "Logging into GitLab Container Registry..."
         - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
         - echo "Building the Docker image..."
-        # $CI_REGISTRY_IMAGE is a predefined variable that points to your project's registry.
-        # $CI_COMMIT_REF_SLUG creates a unique tag for your branch (e.g., feature-docker-image-pipeline).
         - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG .
         - echo "Pushing the Docker image to the registry..."
         - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
 
-    # This job will USE the image we just built.
     test-the-image:
       stage: test_image
-      # Here, we tell GitLab to use the image we just pushed to our registry.
       image: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
       script:
         - echo "Hello from inside our custom-built image!"
